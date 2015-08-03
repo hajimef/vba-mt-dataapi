@@ -1118,12 +1118,12 @@ Public Sub generateEndpointMethod(name As String, method As Scripting.Dictionary
 End Sub
 
 ' Data API
-Public Function send(ParamArray params()) As Scripting.Dictionary
+Public Function send(ParamArray params()) As Object
     Dim method As String, route As String, url As String, verb As String
     Dim sendParams As Scripting.Dictionary, keys() As Variant
     Dim resources As Collection
     Dim re As RegExp, mc As MatchCollection, m As Match, found As String, repl As String
-    Dim response As Scripting.Dictionary, items As Collection
+    Dim response As Object, items As Collection
     Dim i As Integer, ptr As Integer
     
     ' メソッド名をチェック
@@ -1160,7 +1160,11 @@ Public Function send(ParamArray params()) As Scripting.Dictionary
     If ptr = UBound(params) Then
         keys = params(ptr).keys
         For i = 0 To params(ptr).Count - 1
-            sendParams(keys(i)) = params(ptr)(keys(i))
+            If keys(i) = "categories" Then
+                sendParams(keys(i)) = jlib.toString(params(ptr)(keys(i)))
+            Else
+                sendParams(keys(i)) = params(ptr)(keys(i))
+            End If
         Next
         If method = "authenticate" Then
             sendParams("clientId") = clId
@@ -1176,11 +1180,13 @@ Public Function send(ParamArray params()) As Scripting.Dictionary
     
     ' itemsをCollectionに変換
     Set items = New Collection
-    If response.Exists("items") Then
-        For i = 1 To response("items").Count
-            items.Add response("items")(i)
-        Next
-        Set response("items") = items
+    If method <> "permutateCategories" Then
+        If response.Exists("items") Then
+            For i = 1 To response("items").Count
+                items.Add response("items")(i)
+            Next
+            Set response("items") = items
+        End If
     End If
 
     ' 結果を返す
@@ -1188,11 +1194,11 @@ Public Function send(ParamArray params()) As Scripting.Dictionary
 End Function
 
 ' サーバーと通信
-Private Function SendData(url As String, verb As String, params As Scripting.Dictionary) As Scripting.Dictionary
+Private Function SendData(url As String, verb As String, params As Scripting.Dictionary) As Object
     Dim i As Integer, n As String, v As String, boundary As String
     Dim xmlHTTP As MSXML2.XMLHTTP60
     Dim strm As Stream, f_strm As Stream, formData, json, binFile, fName As String
-    Dim response As Scripting.Dictionary, items As Collection
+    Dim response As Object, items As Collection
 
     Set xmlHTTP = New MSXML2.XMLHTTP60
     boundary = "----boundary" & Format(Int(Rnd(1) * 100000000), "00000000")
@@ -1253,9 +1259,9 @@ Private Function SendData(url As String, verb As String, params As Scripting.Dic
             strm.Close
             Set strm = Nothing
             
-            Open "send.dat" For Binary As #1
-            Put #1, , formData
-            Close #1
+'            Open "send.dat" For Binary As #1
+'            Put #1, , formData
+'            Close #1
         End If
     End If
 
